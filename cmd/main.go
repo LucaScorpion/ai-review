@@ -57,12 +57,14 @@ func main() {
 		},
 	})
 
+	response := strings.TrimSuffix(res.Content, "```")
+
 	// Parse the yaml, check for errors.
 	output := prompt.Output{}
-	err = yaml.Unmarshal([]byte(res.Content), &output)
+	err = yaml.Unmarshal([]byte(response), &output)
 	if err != nil {
 		fmt.Println("Failed to unmarshal yaml:", err)
-		fmt.Println(res.Content)
+		fmt.Println(response)
 		os.Exit(1)
 	}
 
