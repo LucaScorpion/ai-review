@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ai-reviewer/internal/ansi"
 	"ai-reviewer/internal/git"
 	"ai-reviewer/internal/openai"
 	"ai-reviewer/internal/prompt"
@@ -9,7 +10,11 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
+	"strings"
 )
+
+//go:embed banner.txt
+var banner string
 
 func main() {
 	// Check if the OpenAI API key is set.
@@ -38,6 +43,8 @@ func main() {
 		Diffs: diffs,
 	}))
 
+	fmt.Println(banner)
+
 	// Call the OpenAI API.
 	client := openai.NewClient(apiKey, openai.Gpt4TurboPreview)
 	res := client.CreateCompletion([]openai.Message{
@@ -51,8 +58,29 @@ func main() {
 		},
 	})
 
+	// Parse the yaml, check for errors.
 	output := prompt.Output{}
-	util.PanicIfError(yaml.Unmarshal([]byte(res.Content), &output))
+	err = yaml.Unmarshal([]byte(res.Content), &output)
+	if err != nil {
+		fmt.Println("Failed to unmarshal yaml:", err)
+		fmt.Println(res.Content)
+		os.Exit(1)
+	}
+
+	// Display the output.
+
+	fmt.Println(ansi.Bold() + "Possible Issues:" + ansi.Reset())
+	fmt.Println(output.Review.PossibleIssues)
+
+	fmt.Println(ansi.Bold() + "Security Concerns:" + ansi.Reset())
+	fmt.Println(output.Review.SecurityConcerns)
+
+	fmt.Println(ansi.Bold() + "Suggestions:" + ansi.Reset() + "\n")
+	for _, suggestion := range output.CodeSuggestions {
+		fmt.Println(ansi.Bold() + strings.TrimSpace(suggestion.RelevantFile) + ansi.Reset())
+		fmt.Println("```\n" + strings.TrimSpace(suggestion.RelevantLine) + "\n```")
+		fmt.Println(suggestion.Suggestion)
+	}
 }
 
 func errAndExit(err string) {
