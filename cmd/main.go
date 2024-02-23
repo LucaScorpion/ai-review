@@ -7,6 +7,7 @@ import (
 	"ai-reviewer/internal/util"
 	_ "embed"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 )
 
@@ -37,6 +38,7 @@ func main() {
 		Diffs: diffs,
 	}))
 
+	// Call the OpenAI API.
 	client := openai.NewClient(apiKey, openai.Gpt4TurboPreview)
 	res := client.CreateCompletion([]openai.Message{
 		{
@@ -49,7 +51,8 @@ func main() {
 		},
 	})
 
-	fmt.Println(res.Content)
+	output := prompt.Output{}
+	util.PanicIfError(yaml.Unmarshal([]byte(res.Content), &output))
 }
 
 func errAndExit(err string) {
