@@ -24,7 +24,6 @@ func main() {
 	}
 
 	// Check if we have a target branch.
-	fmt.Println(os.Args)
 	if len(os.Args) < 2 {
 		errAndExit("No target diff branch given.")
 	}
