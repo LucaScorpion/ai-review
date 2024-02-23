@@ -1,0 +1,10 @@
+The Git diff:
+
+======
+{{- range .Diffs }}
+{{ .Diff }}
+{{- end -}}
+======
+
+Response (should be a valid YAML, and nothing else):
+```yaml

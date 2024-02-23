@@ -1,30 +1,58 @@
 package main
 
 import (
+	"ai-reviewer/internal/git"
 	"ai-reviewer/internal/openai"
+	"ai-reviewer/internal/prompt"
+	"ai-reviewer/internal/util"
+	_ "embed"
 	"fmt"
 	"os"
 )
 
 func main() {
+	// Check if the OpenAI API key is set.
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		fmt.Println("No OPENAI_API_KEY found in environment.")
-		os.Exit(1)
+		errAndExit("No OPENAI_API_KEY found in environment.")
 	}
 
-	client := openai.NewClient(apiKey, openai.Gpt4TurboPreview)
+	// Check if we have a target branch.
+	fmt.Println(os.Args)
+	if len(os.Args) < 2 {
+		errAndExit("No target diff branch given.")
+	}
 
+	// Run the Git diff.
+	diffs, err := git.Diff(os.Args[1])
+	if err != nil {
+		errAndExit("An error occurred while getting the Git diff:\n" + err.Error())
+	}
+
+	// Create the prompts.
+	systemPrompt := util.Must(prompt.CreateSystemPrompt(prompt.SystemInput{
+		SuggestionsCount: 5,
+	}))
+	userPrompt := util.Must(prompt.CreateUserPrompt(prompt.UserInput{
+		Diffs: diffs,
+	}))
+
+	client := openai.NewClient(apiKey, openai.Gpt4TurboPreview)
 	res := client.CreateCompletion([]openai.Message{
 		{
 			Role:    openai.RoleSystem,
-			Content: "You are a helpful AI assistant named EZ-review.",
+			Content: systemPrompt,
 		},
 		{
 			Role:    openai.RoleUser,
-			Content: "Hi there! What is your name?",
+			Content: userPrompt,
 		},
 	})
 
 	fmt.Println(res.Content)
+}
+
+func errAndExit(err string) {
+	fmt.Println(err)
+	os.Exit(1)
 }

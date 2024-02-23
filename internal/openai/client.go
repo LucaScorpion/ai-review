@@ -1,6 +1,7 @@
 package openai
 
 import (
+	"ai-reviewer/internal/util"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -27,30 +28,19 @@ func NewClient(apiKey, model string) *Client {
 }
 
 func (c *Client) request(method, path string, body, resVal any) {
-	jsonBody := must(json.Marshal(body))
+	jsonBody := util.Must(json.Marshal(body))
 
-	req := must(http.NewRequest(method, baseUrl+path, bytes.NewReader(jsonBody)))
+	req := util.Must(http.NewRequest(method, baseUrl+path, bytes.NewReader(jsonBody)))
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	res := must(http.DefaultClient.Do(req))
-	resBody := must(io.ReadAll(res.Body))
+	res := util.Must(http.DefaultClient.Do(req))
+	resBody := util.Must(io.ReadAll(res.Body))
 
 	if res.StatusCode != 200 {
 		fmt.Printf("Received an API error (%d)\n", res.StatusCode)
 		panic(string(resBody))
 	}
 
-	panicIfError(json.Unmarshal(resBody, resVal))
-}
-
-func must[T any](val T, err error) T {
-	panicIfError(err)
-	return val
-}
-
-func panicIfError(err error) {
-	if err != nil {
-		panic(err)
-	}
+	util.PanicIfError(json.Unmarshal(resBody, resVal))
 }
